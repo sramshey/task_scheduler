@@ -1,0 +1,9 @@
+module, operation, duration_seconds
+io, disinfect, 120
+arm, pick, 15
+arm, place, 15
+pump, pump_volume, 180
+pump, pump_all, 300
+pump, weigh, 10
+sample, draw_sample, 30
+sample, weigh, 10
