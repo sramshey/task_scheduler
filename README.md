@@ -12,7 +12,7 @@ bash$ python task_scheduler.py --operations operations_example.csv --process pro
 ## MILP Model (PuLP)
 The scheduler formulates a Job-Shop Scheduling Problem using the following contraints:
 
-1. ConstraintDescriptionPrecedence: Each step in a process must start only after the previous step finishes
+1. Precedence: Each step in a process must start only after the previous step finishes
 2. No-overlap: Two tasks sharing the same module cannot run simultaneously (binary ordering variable per pair)
 3. Makespan: Objective is to minimize the overall completion time
 
