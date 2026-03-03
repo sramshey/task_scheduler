@@ -61,8 +61,13 @@ def parse_wait_duration(parameters: str) -> float:
     for part in str(parameters).split(","):
         part = part.strip()
         if part.lower().startswith("duration="):
-            minutes = float(part.split("=", 1)[1].strip().removesuffix("min"))
-            return minutes * 60.0
+            if part.lower().endswith("min"):
+                minutes = float(part.split("=", 1)[1].strip().removesuffix("min"))
+                return minutes * 60.0
+            elif part.lower().endswith("sec"):
+                seconds = float(part.split("=", 1)[1].strip().removesuffix("sec"))
+                return seconds
+
     raise ValueError(f"Could not parse duration from parameters: '{parameters}'")
 
 
@@ -86,7 +91,7 @@ def load_process(path: str, op_catalogue: dict) -> list:
     for idx, row in df.iterrows():
         module = None if pd.isna(row["module"]) or str(row["module"]).strip() == "" else str(row["module"]).strip()
         op = str(row["operation"]).strip()
-        params = row["parameters"]
+        params = None if pd.isna(row["parameters"]) or str(row["parameters"]).strip() == "" else str(row["parameters"]).strip()
 
         # Determine duration
         if op.lower() == "wait":
