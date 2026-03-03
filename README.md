@@ -4,7 +4,7 @@
 code example - schedule optimizer using PuLP
 
 ## Install dependencies:
-bashpip install pulp pandas
+bash$ pip install -r requirements.txt
 
 ## Run it:
 bash$ python task_scheduler.py --operations operations_example.csv --process process1_example.csv process2_example.csv process3_example.csv --output schedule.csv [--print]
@@ -29,7 +29,9 @@ The wait operation has an empty module and a duration_seconds of 0 (the actual d
 module, operation, parameters
 
 Normal steps reference the catalogue by module
-Wait steps: module is blank, operation is wait, parameters is duration=<minutes>
+Wait steps: module is blank, operation is wait, parameters is duration=INTmins
 
 ### Output DataFrame columns
 job_file, job_index, step, module, operation, parameters, duration_seconds, start_time_seconds, end_time_seconds — sorted by start time.
+
+Use either --print or specify an output file using --output FILE

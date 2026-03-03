@@ -18,6 +18,8 @@ import sys
 import math
 import logging
 import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
 import pulp
 
 
@@ -272,6 +274,147 @@ def print_schedule(df: pd.DataFrame):
     makespan = df["end_time_seconds"].max()
     print(f"  Makespan: {makespan:.2f} s  ({makespan/60:.2f} min)\n")
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Timeline chart
+# ─────────────────────────────────────────────────────────────────────────────
+
+def plot_schedule(df: pd.DataFrame, title: str = "Optimised Task Schedule") -> go.Figure:
+    """
+    Render an interactive Gantt-style timeline of the optimised schedule.
+
+    Y-axis  : one row per process (labelled by basename of process_file)
+    X-axis  : time in seconds
+    Bars    : each task, coloured by module (wait tasks are grey/hatched)
+    Hover   : process_file, step, module, operation, start, end, duration
+    """
+    import os
+    plot_df = df.copy()
+
+    # Friendly process labels
+    plot_df["process_label"] = plot_df["process_file"].apply(
+        lambda p: os.path.splitext(os.path.basename(p))[0]
+    )
+
+    # Display label shown inside / beside each bar
+    plot_df["bar_label"] = plot_df.apply(
+        lambda r: r["operation"] if not r["module"] else f"{r['module']}\n{r['operation']}",
+        axis=1,
+    )
+
+    # Colour category: use module; wait steps get a dedicated "— wait —" category
+    plot_df["color_key"] = plot_df.apply(
+        lambda r: "— wait —" if r["operation"].lower() == "wait" or not r["module"]
+        else r["module"],
+        axis=1,
+    )
+
+    # Build a discrete colour map so wait is always neutral grey
+    modules = sorted(plot_df.loc[plot_df["color_key"] != "— wait —", "color_key"].unique())
+    palette = px.colors.qualitative.Bold
+    color_map = {mod: palette[i % len(palette)] for i, mod in enumerate(modules)}
+    color_map["— wait —"] = "#CBD5E1"   # slate-300
+
+    # Ordered y-axis categories (processes top → bottom by index)
+    job_order = (
+        plot_df[["job_index", "process_label"]]
+        .drop_duplicates()
+        .sort_values("job_index")["process_label"]
+        .tolist()
+    )
+
+    # ── Build figure ──────────────────────────────────────────────────────────
+    fig = px.timeline(
+        plot_df,
+        # px.timeline expects datetime; we convert seconds → fake datetime offset
+        x_start=pd.to_datetime(plot_df["start_time_seconds"], unit="s", origin="unix"),
+        x_end=pd.to_datetime(plot_df["end_time_seconds"],   unit="s", origin="unix"),
+        y="process_label",
+        color="color_key",
+        color_discrete_map=color_map,
+        category_orders={"process_label": job_order},
+        text="operation",
+        custom_data=["process_label", "step", "module", "operation",
+                     "start_time_seconds", "end_time_seconds", "duration_seconds"],
+        title=title,
+    )
+
+    # ── Custom hover template ─────────────────────────────────────────────────
+    fig.update_traces(
+        hovertemplate=(
+            "<b>%{customdata[3]}</b><br>"
+            "Process  : %{customdata[0]}  (step %{customdata[1]})<br>"
+            "Module   : %{customdata[2]}<br>"
+            "Start    : %{customdata[4]:.1f} s<br>"
+            "End      : %{customdata[5]:.1f} s<br>"
+            "Duration : %{customdata[6]:.1f} s<extra></extra>"
+        ),
+        textposition="inside",
+        insidetextanchor="middle",
+        cliponaxis=False,
+    )
+
+    # ── Re-label x-axis as plain seconds (strip the fake epoch offset) ────────
+    makespan = df["end_time_seconds"].max()
+    # Choose a sensible tick spacing
+    raw_step = makespan / 8
+    magnitude = 10 ** math.floor(math.log10(raw_step)) if raw_step > 0 else 1
+    tick_step = max(1, round(raw_step / magnitude) * magnitude)
+
+    tick_vals_s = [i * tick_step for i in range(int(makespan / tick_step) + 2)]
+    tick_vals_dt = pd.to_datetime(tick_vals_s, unit="s", origin="unix")
+
+    fig.update_xaxes(
+        tickvals=tick_vals_dt,
+        ticktext=[f"{v:.0f} s" for v in tick_vals_s],
+        title_text="Time (seconds)",
+        showgrid=True,
+        gridcolor="#E2E8F0",
+        zeroline=True,
+        zerolinecolor="#94A3B8",
+    )
+
+    # ── Layout polish ─────────────────────────────────────────────────────────
+    n_processes = plot_df["process_label"].nunique()
+    fig.update_layout(
+        height=max(300, 120 + n_processes * 80),
+        plot_bgcolor="#F8FAFC",
+        paper_bgcolor="#FFFFFF",
+        font=dict(family="monospace", size=12),
+        title=dict(font=dict(size=16, family="sans-serif"), x=0.5, xanchor="center"),
+        legend=dict(
+            title="Module",
+            orientation="v",
+            yanchor="top",
+            y=1,
+            xanchor="left",
+            x=1.01,
+            bgcolor="rgba(255,255,255,0.85)",
+            bordercolor="#CBD5E1",
+            borderwidth=1,
+        ),
+        yaxis=dict(
+            title_text="Process",
+            autorange="reversed",
+            showgrid=False,
+            tickfont=dict(size=12),
+        ),
+        margin=dict(l=20, r=160, t=60, b=60),
+        bargap=0.25,
+    )
+
+    # ── Makespan annotation ───────────────────────────────────────────────────
+    # fig.add_vline(
+    #     x=pd.Timestamp("1970-01-01") + pd.to_timedelta(makespan, unit="s"),
+    #     line_dash="dash",
+    #     line_color="#EF4444",
+    #     line_width=2,
+    #     annotation_text=f"Makespan: {makespan:.1f} s",
+    #     annotation_position="top right",
+    #     annotation_font=dict(color="#EF4444", size=11),
+    # )
+
+    fig.show()
+    return fig
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CLI
@@ -320,6 +463,11 @@ Process CSV columns        : module, operation[, parameters]
         dest="print_schedule",
         help="If specified, the computed schedule will be printed to stdout.",
     )
+    parser.add_argument(
+        "--chart", "-c",
+        action="store_true",
+        help="Display an interactive Plotly timeline chart of the schedule.",
+    )
     return parser.parse_args()
 
 
@@ -353,6 +501,9 @@ def main():
     if args.output:
         schedule_df.to_csv(args.output, index=False)
         logging.info(f"Schedule written to: {args.output}")
+
+    if args.chart:
+        plot_schedule(schedule_df)
 
     return schedule_df
 
