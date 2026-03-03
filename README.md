@@ -7,12 +7,12 @@ code example - schedule optimizer using PuLP
 bash$ pip install -r requirements.txt
 
 ## Run it:
-bash$ python task_scheduler.py --operations operations_example.csv --process process1_example.csv process2_example.csv process3_example.csv --output schedule.csv [--print]
+bash$ python task_scheduler.py --operations operations_example.csv --process process1_example.csv process2_example.csv process3_example.csv --output schedule.csv [--print] [--chart]
 
 ## MILP Model (PuLP)
 The scheduler formulates a Job-Shop Scheduling Problem using the following contraints:
 
-1. ConstraintDescriptionPrecedence: Each step in a job must start only after the previous step finishes
+1. ConstraintDescriptionPrecedence: Each step in a process must start only after the previous step finishes
 2. No-overlap: Two tasks sharing the same module cannot run simultaneously (binary ordering variable per pair)
 3. Makespan: Objective is to minimize the overall completion time
 
@@ -32,6 +32,8 @@ Normal steps reference the catalogue by module
 Wait steps: module is blank, operation is wait, parameters is duration=INTmins
 
 ### Output DataFrame columns
-job_file, job_index, step, module, operation, parameters, duration_seconds, start_time_seconds, end_time_seconds — sorted by start time.
+process_file, job_index, step, module, operation, parameters, duration_seconds, start_time_seconds, end_time_seconds — sorted by start time.
 
+### Optional outputs
 Use either --print or specify an output file using --output FILE
+Use --chart to produce a visual timeline of the processes
