@@ -3,7 +3,7 @@
 Task Scheduler using PuLP (Mixed Integer Linear Programming)
 
 Usage:
-    python task_scheduler.py --operations ops.csv --jobs job1.csv job2.csv [--output schedule.csv]
+    python task_scheduler.py --operations ops.csv --process process1.csv process2.csv [--output schedule.csv]
 
 Operations CSV format:
     module, operation, duration_seconds
@@ -16,6 +16,7 @@ Job CSV format:
 import argparse
 import sys
 import math
+import logging
 import pandas as pd
 import pulp
 
@@ -308,31 +309,45 @@ Process CSV columns        : module, operation[, parameters]
         metavar="FILE",
         help="Optional output CSV file name (default: print to stdout only).",
     )
+    parser.add_argument(
+        "--print", "-p",
+        action="store_true",
+        dest="print_schedule",
+        help="If specified, the computed schedule will be printed to stdout.",
+    )
     return parser.parse_args()
 
 
 def main():
     args = parse_args()
 
-    print(f"[INFO] Loading operations catalogue: {args.operations}")
+    # configure basic logging to stdout
+    logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
+
+    logging.info(f"Loading operations catalogue: {args.operations}")
     ops_catalogue = load_operations(args.operations)
-    print(f"       {len(ops_catalogue)} operation(s) loaded.")
+    logging.info(f"{len(ops_catalogue)} operation(s) loaded.")
 
     all_processes = []
     for process_path in args.process:
-        print(f"[INFO] Loading process: {process_path}")
+        logging.info(f"Loading process: {process_path}")
         this_proc = load_process(process_path, ops_catalogue)
         all_processes.append(this_proc)
-        print(f"       {len(this_proc)} step(s) loaded.")
+        logging.info(f"{len(this_proc)} step(s) loaded.")
 
-    print(f"\n[INFO] Solving scheduling problem ({sum(len(j) for j in all_processes)} tasks across {len(all_processes)} processes) …")
+    logging.info(
+        "\nSolving scheduling problem (%d tasks across %d processes) …",
+        sum(len(j) for j in all_processes),
+        len(all_processes),
+    )
     schedule_df = build_schedule(all_processes)
 
-    print_schedule(schedule_df)
+    if args.print_schedule:
+        print_schedule(schedule_df)
 
     if args.output:
         schedule_df.to_csv(args.output, index=False)
-        print(f"[INFO] Schedule written to: {args.output}")
+        logging.info(f"Schedule written to: {args.output}")
 
     return schedule_df
 
