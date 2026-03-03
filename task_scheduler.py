@@ -402,17 +402,6 @@ def plot_schedule(df: pd.DataFrame, title: str = "Optimised Task Schedule") -> g
         bargap=0.25,
     )
 
-    # ── Makespan annotation ───────────────────────────────────────────────────
-    # fig.add_vline(
-    #     x=pd.Timestamp("1970-01-01") + pd.to_timedelta(makespan, unit="s"),
-    #     line_dash="dash",
-    #     line_color="#EF4444",
-    #     line_width=2,
-    #     annotation_text=f"Makespan: {makespan:.1f} s",
-    #     annotation_position="top right",
-    #     annotation_font=dict(color="#EF4444", size=11),
-    # )
-
     fig.show()
     return fig
 
