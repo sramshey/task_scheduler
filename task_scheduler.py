@@ -3,7 +3,7 @@
 Task Scheduler using PuLP (Mixed Integer Linear Programming)
 
 Usage:
-    python task_scheduler.py --operations ops.csv --process process1.csv process2.csv [--output schedule.csv]
+    python task_scheduler.py --operations ops.csv --process process1.csv process2.csv [--output schedule.csv] [--print] [--chart]
 
 Operations CSV format:
     module, operation, duration_seconds
@@ -422,9 +422,12 @@ Examples
   # Save schedule to file
   python task_scheduler.py --operations operations.csv --process process1.csv process2.csv --output schedule.csv
 
+  # Pretty print optimized schedule to STDOUT: --print
+  # Produce a Gantt-style chart using Plotly:  --chart
+
 Operations CSV columns : module, operation, duration_seconds
-Process CSV columns        : module, operation[, parameters]
-  - Use operation='wait' (no module) with parameters='duration=<minutes>' for wait steps.
+Process CSV columns        : module, operation, parameters
+  - Use operation='wait' (no module) with parameters='duration=<minutes>min' for wait steps.
 """,
     )
     parser.add_argument(
