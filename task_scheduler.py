@@ -130,7 +130,7 @@ def build_schedule(all_jobs: list[list[dict]]) -> pd.DataFrame:
 
     Decision variables
     ------------------
-    start[j][s]  : continuous, start time of step s in job j  (seconds)
+    start[j][s]  : continuous, start time of step s in process j  (seconds)
     order[j1,s1,j2,s2] : binary, 1 if task (j1,s1) precedes (j2,s2) on the
                          same module (only created when module is non-empty).
 
@@ -470,19 +470,19 @@ def main():
     ops_catalogue = load_operations(args.operations)
     logging.info(f"{len(ops_catalogue)} operation(s) loaded.")
 
-    all_processes = []
+    all_jobs = []
     for process_path in args.process:
         logging.info(f"Loading process: {process_path}")
-        this_proc = load_process(process_path, ops_catalogue)
-        all_processes.append(this_proc)
-        logging.info(f"{len(this_proc)} step(s) loaded.")
+        proc_jobs = load_process(process_path, ops_catalogue)
+        all_jobs.append(proc_jobs)
+        logging.info(f"{len(proc_jobs)} step(s) loaded.")
 
     logging.info(
         "\nSolving scheduling problem (%d tasks across %d processes) …",
-        sum(len(j) for j in all_processes),
-        len(all_processes),
+        sum(len(j) for j in all_jobs),
+        len(all_jobs),
     )
-    schedule_df = build_schedule(all_processes)
+    schedule_df = build_schedule(all_jobs)
 
     if args.print_schedule:
         print_schedule(schedule_df)
